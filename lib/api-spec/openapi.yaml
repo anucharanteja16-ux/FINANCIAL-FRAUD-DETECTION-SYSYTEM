@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: FraudShield API - Financial Fraud Detection System
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: analysis
+    description: Message analysis and fraud detection
+  - name: stats
+    description: Dashboard statistics and analytics
 paths:
   /healthz:
     get:
@@ -24,6 +27,123 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /analysis:
+    post:
+      operationId: analyzeMessage
+      tags: [analysis]
+      summary: Analyze a message for fraud
+      description: Analyzes a message (SMS, email, WhatsApp) and classifies it as safe, spam, or fraud
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: getAnalysisHistory
+      tags: [analysis]
+      summary: Get analysis history
+      description: Returns list of previously analyzed messages
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: number
+        - name: offset
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of analysis results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisHistoryResponse"
+
+  /analysis/{id}:
+    get:
+      operationId: getAnalysisById
+      tags: [analysis]
+      summary: Get a specific analysis result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [stats]
+      summary: Get dashboard summary statistics
+      description: Returns aggregate stats for the dashboard
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /stats/recent:
+    get:
+      operationId: getRecentActivity
+      tags: [stats]
+      summary: Get recent analysis activity
+      description: Returns the 10 most recent analyses with compact info
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecentActivity"
+
+  /stats/breakdown:
+    get:
+      operationId: getClassificationBreakdown
+      tags: [stats]
+      summary: Get classification breakdown by type and channel
+      responses:
+        "200":
+          description: Classification breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationBreakdown"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +154,219 @@ components:
       required:
         - status
 
+    AnalyzeRequest:
+      type: object
+      properties:
+        message:
+          type: string
+          description: The raw message text to analyze
+        channel:
+          type: string
+          enum: [sms, email, whatsapp, other]
+          description: The channel the message came from
+      required:
+        - message
+        - channel
+
+    AnalysisResult:
+      type: object
+      properties:
+        id:
+          type: number
+        message:
+          type: string
+        channel:
+          type: string
+        classification:
+          type: string
+          enum: [safe, spam, fraud]
+        confidence:
+          type: number
+          description: Confidence score 0-100
+        riskScore:
+          type: number
+          description: Risk score 0-100
+        indicators:
+          type: array
+          items:
+            $ref: "#/components/schemas/FraudIndicator"
+        detectedUrls:
+          type: array
+          items:
+            $ref: "#/components/schemas/UrlCheck"
+        explanation:
+          type: string
+        analyzedAt:
+          type: string
+      required:
+        - id
+        - message
+        - channel
+        - classification
+        - confidence
+        - riskScore
+        - indicators
+        - detectedUrls
+        - explanation
+        - analyzedAt
+
+    FraudIndicator:
+      type: object
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+      required:
+        - type
+        - description
+        - severity
+
+    UrlCheck:
+      type: object
+      properties:
+        url:
+          type: string
+        isSuspicious:
+          type: boolean
+        reason:
+          type: string
+      required:
+        - url
+        - isSuspicious
+        - reason
+
+    AnalysisHistoryResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalysisResult"
+        total:
+          type: number
+      required:
+        - items
+        - total
+
+    DashboardStats:
+      type: object
+      properties:
+        totalAnalyzed:
+          type: number
+        fraudCount:
+          type: number
+        spamCount:
+          type: number
+        safeCount:
+          type: number
+        fraudRate:
+          type: number
+        urlsChecked:
+          type: number
+        suspiciousUrls:
+          type: number
+        avgRiskScore:
+          type: number
+      required:
+        - totalAnalyzed
+        - fraudCount
+        - spamCount
+        - safeCount
+        - fraudRate
+        - urlsChecked
+        - suspiciousUrls
+        - avgRiskScore
+
+    RecentActivity:
+      type: object
+      properties:
+        id:
+          type: number
+        channel:
+          type: string
+        classification:
+          type: string
+        riskScore:
+          type: number
+        messagePreview:
+          type: string
+        analyzedAt:
+          type: string
+      required:
+        - id
+        - channel
+        - classification
+        - riskScore
+        - messagePreview
+        - analyzedAt
+
+    ClassificationBreakdown:
+      type: object
+      properties:
+        byChannel:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+              safe:
+                type: number
+              spam:
+                type: number
+              fraud:
+                type: number
+            required:
+              - channel
+              - safe
+              - spam
+              - fraud
+        byClassification:
+          type: array
+          items:
+            type: object
+            properties:
+              classification:
+                type: string
+              count:
+                type: number
+            required:
+              - classification
+              - count
+        weeklyTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+              fraud:
+                type: number
+              spam:
+                type: number
+              safe:
+                type: number
+            required:
+              - day
+              - fraud
+              - spam
+              - safe
+      required:
+        - byChannel
+        - byClassification
+        - weeklyTrend
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

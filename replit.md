@@ -1,8 +1,8 @@
-# Workspace
+# FraudShield - Financial Fraud Detection System
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+FraudShield is a full-stack web application that detects fake/fraudulent financial messages such as SMS, emails, WhatsApp payment messages, and phishing attempts. It classifies messages as **Safe**, **Spam**, or **Fraud** using a rule-based NLP engine with pattern matching, URL analysis, and fraud indicator detection.
 
 ## Stack
 
@@ -10,87 +10,81 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
+- **Frontend**: React + Vite + TailwindCSS + shadcn/ui
+- **Backend API**: Express 5 (TypeScript)
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **API codegen**: Orval (from OpenAPI spec → React Query hooks + Zod schemas)
+- **Charts**: Recharts
+- **Routing**: Wouter
 
 ## Structure
 
 ```text
 artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
+├── artifacts/
+│   ├── api-server/         # Express 5 API server with fraud detection routes
+│   │   └── src/
+│   │       ├── lib/
+│   │       │   └── fraudDetector.ts   # Core fraud detection engine
+│   │       └── routes/
+│   │           ├── analysis.ts        # POST/GET /api/analysis
+│   │           └── stats.ts           # GET /api/stats/*
+│   └── fraudshield/        # React + Vite frontend (serves at /)
+│       └── src/
+│           └── pages/
+│               ├── dashboard.tsx      # Security overview with charts
+│               ├── analyze.tsx        # Message analysis input + results
+│               ├── history.tsx        # Past analyses table
+│               └── roadmap.tsx        # Learning resource / architecture page
+├── lib/
+│   ├── api-spec/           # OpenAPI 3.1 spec
 │   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+│   ├── api-zod/            # Generated Zod schemas
+│   └── db/
+│       └── src/schema/
+│           └── analyses.ts # Drizzle table for stored analysis results
+└── scripts/
 ```
+
+## API Endpoints
+
+- `GET /api/healthz` — Health check
+- `POST /api/analysis` — Analyze a message (body: `{ message, channel }`)
+- `GET /api/analysis` — Get analysis history (query: `?limit=&offset=`)
+- `GET /api/analysis/:id` — Get specific analysis result
+- `GET /api/stats/dashboard` — Aggregate stats (totals, rates, URLs checked)
+- `GET /api/stats/recent` — 10 most recent analyses
+- `GET /api/stats/breakdown` — Classification breakdown by channel and day
+
+## Fraud Detection Engine
+
+The `fraudDetector.ts` engine uses:
+1. **Keyword matching** — 30+ fraud and spam keyword patterns
+2. **Urgency detection** — Regex for time pressure language
+3. **Credential request detection** — OTP, PIN, CVV, card/account number requests
+4. **Money transfer detection** — Payment/transfer language
+5. **Prize/lottery scam detection** — Winner/reward language
+6. **URL extraction + analysis** — Checks for URL shorteners, IP addresses, typosquatting, suspicious TLDs, phishing keywords in URLs
+7. **Risk scoring** — Weighted score (0-100) based on indicator severity
+8. **Classification** — Safe / Spam / Fraud based on risk thresholds
+
+## Pages
+
+- `/` — Dashboard: stats cards, weekly trend chart, recent activity feed, classification breakdown pie chart
+- `/analyze` — Analyze any message: input + channel selector, full result display with indicators, URL checks, risk gauge
+- `/history` — Paginated table of all past analyses
+- `/roadmap` — Learning resource: architecture diagrams, tech stack, development roadmap, AI/ML explanation
 
 ## TypeScript & Composite Projects
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+- `lib/*` packages are composite and emit declarations via `tsc --build`.
+- Root `tsconfig.json` is a solution file for libs only.
+- Run `pnpm run typecheck` from root for full check.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Development
 
-## Root Scripts
-
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
-
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+- `pnpm --filter @workspace/api-server run dev` — Start API server
+- `pnpm --filter @workspace/fraudshield run dev` — Start frontend
+- `pnpm --filter @workspace/api-spec run codegen` — Regenerate API client hooks
+- `pnpm --filter @workspace/db run push` — Push DB schema changes
