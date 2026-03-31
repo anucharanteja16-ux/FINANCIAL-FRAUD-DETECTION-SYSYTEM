@@ -1,0 +1,69 @@
+You are an expert cybersecurity software developer and Linux automation engineer.
+
+Build a complete application that automatically configures Tor and Proxychains to route internet traffic through multiple proxies for anonymity.
+
+Project name: MultiProxy Anonymous Router
+
+The application must include the following features:
+
+CORE FUNCTIONALITY
+1. Automatically check if Tor is installed on the system.
+2. If Tor is not installed, install it automatically using Linux commands.
+3. Automatically check if Proxychains is installed.
+4. If Proxychains is not installed, install it.
+5. Automatically configure proxychains.conf with:
+   - dynamic_chain mode
+   - SOCKS5 127.0.0.1 9050
+   - support for multiple proxies
+6. Automatically start the Tor service.
+7. Verify anonymity by checking the public IP before and after enabling Tor.
+8. Display:
+   - Original IP address
+   - Anonymous IP address
+   - Status of Tor
+   - Status of Proxychains
+
+APPLICATION REQUIREMENTS
+9. Create a simple but clean web interface (using HTML, CSS, JavaScript, and Python Flask).
+10. The website should have the following pages:
+   - Dashboard
+   - Install & Setup
+   - Proxy Manager
+   - IP Status Checker
+   - Logs Page
+
+PROXY MANAGEMENT FEATURES
+11. Allow users to:
+   - Add new proxies (SOCKS5 / HTTP)
+   - Delete proxies
+   - Enable multiple proxy routing
+   - Automatically validate whether a proxy is working
+
+SECURITY FEATURES
+12. Add a proxy validation function (check if proxy is alive).
+13. Add an IP leak test (basic DNS leak check).
+14. Add error handling if Tor fails to start.
+15. Create a logging system that saves logs in a folder called "logs".
+
+CODE REQUIREMENTS
+16. Use Python for backend (Flask).
+17. Use subprocess to run Linux commands.
+18. Code must be clean and beginner-friendly.
+19. Use modular structure:
+    - app/
+    - templates/
+    - static/
+    - modules/
+    - logs/
+20. Create:
+    - README.md
+    - requirements.txt
+    - config.json
+
+AFTER BUILDING THE PROJECT
+21. Show the full folder structure.
+22. Explain how to install and run it step-by-step.
+23. Suggest future improvements like:
+    - GUI desktop version
+    - Automatic proxy rotation
+    - AI-based proxy detection
