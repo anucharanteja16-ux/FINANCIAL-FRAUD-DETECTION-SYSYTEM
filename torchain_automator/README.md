@@ -52,6 +52,20 @@ torchain_automator/
 
 ## How to Run — Step by Step
 
+### GUI Mode (Recommended)
+
+```bash
+sudo python3 gui.py
+```
+
+A graphical window will open with buttons for every action, a live output console, and a real-time IP display strip showing your Real IP vs Tor IP side by side.
+
+### Terminal / Menu Mode
+
+```bash
+sudo python3 main.py
+```
+
 ### 1. Clone or download the project
 
 ```bash
