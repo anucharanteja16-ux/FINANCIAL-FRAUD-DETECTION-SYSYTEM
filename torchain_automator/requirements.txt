@@ -1,0 +1,8 @@
+# TorChain Automator — Python dependencies
+# The tool relies only on the Python standard library.
+# All external interaction (Tor, Proxychains) is handled via subprocess.
+#
+# If you wish to add optional enhancements uncomment below:
+# requests>=2.31.0      # Alternative HTTP library for IP checks
+# colorama>=0.4.6       # Cross-platform terminal colour support
+# rich>=13.7.0          # Rich text and progress bars in the terminal
